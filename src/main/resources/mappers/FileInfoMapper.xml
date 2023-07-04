@@ -652,7 +652,21 @@
 		delete from file_info where file_id=#{fileId} and user_id=#{userId}
 	</delete>
 
-	<!-- 根据PrimaryKey获取对象-->
+	<!-- 根据userId和fileIds彻底删除 -->
+    <delete id="delFileBatch">
+		delete from file_info where userId=#{userId}
+		<if test="filePidList != null">
+			and file_pid in (<foreach collection="filePidList" separator="," item="item">#{item}</foreach>>)
+		</if>
+		<if test="fileIdList != null">
+			and file_id in (<foreach collection="fileIdList" separator="," item="item">#{item}</foreach>>)
+		</if>
+		<if test="oldDelFlag != null">
+			and del_flag = #{oldDelFlag}
+		</if>
+	</delete>
+
+    <!-- 根据PrimaryKey获取对象-->
 	<select id="selectByFileIdAndUserId" resultMap="base_result_map" >
 		select <include refid="base_column_list" /> from file_info where file_id=#{fileId} and user_id=#{userId}
 	</select>

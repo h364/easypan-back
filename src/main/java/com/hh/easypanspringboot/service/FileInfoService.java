@@ -84,4 +84,8 @@ public interface FileInfoService {
 	UserSpaceDto getUseSpace(String userId);
 
     void remove2RecycleBatch(String userId, String fileIds);
+
+    void recoveryFileBatch(String userId, String fileIds);
+
+    void delFileBatch(String userId, String fileIds, Boolean adminOp);
 }

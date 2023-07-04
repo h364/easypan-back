@@ -23,6 +23,7 @@ import com.hh.easypanspringboot.mappers.UserInfoMapper;
 import com.hh.easypanspringboot.utils.DateUtil;
 import com.hh.easypanspringboot.utils.ProcessUtils;
 import com.hh.easypanspringboot.utils.ScaleFilter;
+import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.springframework.context.annotation.Lazy;
@@ -461,6 +462,7 @@ public class FileInfoServiceImpl implements FileInfoService {
         fileInfoQuery.setFileName(fileName);
         fileInfoQuery.setFilePid(filePid);
         fileInfoQuery.setUserId(userId);
+        fileInfoQuery.setDelFlag(FileDelFlagEnum.USING.getFlag());
         fileInfoQuery.setFolderType(folderType);
 
         Integer count = fileInfoMapper.selectCount(fileInfoQuery);
@@ -490,6 +492,7 @@ public class FileInfoServiceImpl implements FileInfoService {
         FileInfoQuery fileInfoQuery = new FileInfoQuery();
         fileInfoQuery.setFilePid(filePid);
         fileInfoQuery.setFileName(fileName);
+        fileInfoQuery.setDelFlag(FileDelFlagEnum.USING.getFlag());
         fileInfoQuery.setUserId(userId);
         Integer count = fileInfoMapper.selectCount(fileInfoQuery);
         if (count > 1) {
@@ -585,5 +588,84 @@ public class FileInfoServiceImpl implements FileInfoService {
         for (FileInfo fileInfo : fileInfoList) {
             findAllSubFolderFileList(delFileIdList, userId, fileInfo.getFileId(), flag);
         }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void recoveryFileBatch(String userId, String fileIds) {
+        String[] fileIdArray = fileIds.split(",");
+        FileInfoQuery query = new FileInfoQuery();
+        query.setUserId(userId);
+        query.setFileIdArray(fileIdArray);
+        query.setDelFlag(FileDelFlagEnum.RECYCLE.getFlag());
+        List<FileInfo> fileInfoList = fileInfoMapper.selectList(query);
+        ArrayList<String> delFileFolderFileIdList = new ArrayList<>();
+        for (FileInfo fileInfo : fileInfoList) {
+            if (FileFolderTypeEnum.FOLDER.getType().equals(fileInfo.getFolderType())) {
+                findAllSubFolderFileList(delFileFolderFileIdList, userId, fileInfo.getFileId(), FileDelFlagEnum.DEL.getFlag());
+            }
+        }
+        //将选中文件夹下面的所有文件还原
+        if (!delFileFolderFileIdList.isEmpty()) {
+            FileInfo fileInfo = new FileInfo();
+            fileInfo.setDelFlag(FileDelFlagEnum.USING.getFlag());
+            fileInfo.setLastUpdateTime(new Date());
+            fileInfo.setRecoveryTime(new Date());
+            fileInfoMapper.updateFileDelFlagBatch(fileInfo, userId, delFileFolderFileIdList, null, FileDelFlagEnum.DEL.getFlag());
+        }
+        //将选中的所有文件还原
+        List<String> delFileList = Arrays.asList(fileIdArray);
+        FileInfo fileInfo = new FileInfo();
+        fileInfo.setDelFlag(FileDelFlagEnum.USING.getFlag());
+        fileInfo.setRecoveryTime(new Date());
+        fileInfo.setLastUpdateTime(new Date());
+        fileInfoMapper.updateFileDelFlagBatch(fileInfo, userId, null, delFileList, FileDelFlagEnum.RECYCLE.getFlag());
+        //还原到原来的目录下，并重命名
+        for (FileInfo info : fileInfoList) {
+            query = new FileInfoQuery();
+            query.setUserId(userId);
+            query.setDelFlag(FileDelFlagEnum.USING.getFlag());
+            query.setFilePid(info.getFilePid());
+            List<FileInfo> allRootFileList = fileInfoMapper.selectList(query);
+
+            Map<String, FileInfo> rootFileMap = allRootFileList.stream().collect(Collectors.toMap(FileInfo::getFileName, Function.identity(), (data1, data2) -> data2));
+            FileInfo rootInfo = rootFileMap.get(info.getFileName());
+            if (rootInfo != null) {
+                String fileName = StringTools.rename(info.getFileName());
+                FileInfo updateInfo = new FileInfo();
+                updateInfo.setFileName(fileName);
+                fileInfoMapper.updateByFileIdAndUserId(updateInfo, info.getFileId(), userId);
+            }
+        }
+    }
+
+    @Override
+    public void delFileBatch(String userId, String fileIds, Boolean adminOp) {
+        String[] fileIdArray = fileIds.split(",");
+        FileInfoQuery query = new FileInfoQuery();
+        query.setUserId(userId);
+        query.setDelFlag(FileDelFlagEnum.RECYCLE.getFlag());
+        query.setFileIdArray(fileIdArray);
+        List<FileInfo> fileInfoList = fileInfoMapper.selectList(query);
+        ArrayList<String> delFileFolderFileIdList = new ArrayList<>();
+        for (FileInfo fileInfo : fileInfoList) {
+            if (FileFolderTypeEnum.FOLDER.getType().equals(fileInfo.getFolderType())) {
+                findAllSubFolderFileList(delFileFolderFileIdList, userId, fileInfo.getFileId(), FileDelFlagEnum.DEL.getFlag());
+            }
+        }
+        if (!delFileFolderFileIdList.isEmpty()) {
+            fileInfoMapper.delFileBatch(userId, delFileFolderFileIdList, null, adminOp ? null : FileDelFlagEnum.DEL.getFlag());
+        }
+        List<String> delFileList = Arrays.asList(fileIdArray);
+        fileInfoMapper.delFileBatch(userId, null, delFileList, adminOp ? null : FileDelFlagEnum.RECYCLE.getFlag());
+
+        Long useSpace = fileInfoMapper.selectUseSpace(userId);
+        UserInfo userInfo = new UserInfo();
+        userInfo.setUseSpace(useSpace);
+        userInfoMapper.updateByUserId(userInfo, userId);
+
+        UserSpaceDto userSpaceUse = redisComponent.getUserSpaceUse(userId);
+        userSpaceUse.setUseSpace(useSpace);
+        redisComponent.saveUserSpaceUse(userId, userSpaceUse);
     }
 }
