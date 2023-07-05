@@ -592,7 +592,7 @@ public class FileInfoServiceImpl implements FileInfoService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void recoveryFileBatch(String userId, String fileIds) {
+    public void recoverFileBatch(String userId, String fileIds) {
         String[] fileIdArray = fileIds.split(",");
         FileInfoQuery query = new FileInfoQuery();
         query.setUserId(userId);
@@ -613,13 +613,7 @@ public class FileInfoServiceImpl implements FileInfoService {
             fileInfo.setRecoveryTime(new Date());
             fileInfoMapper.updateFileDelFlagBatch(fileInfo, userId, delFileFolderFileIdList, null, FileDelFlagEnum.DEL.getFlag());
         }
-        //将选中的所有文件还原
-        List<String> delFileList = Arrays.asList(fileIdArray);
-        FileInfo fileInfo = new FileInfo();
-        fileInfo.setDelFlag(FileDelFlagEnum.USING.getFlag());
-        fileInfo.setRecoveryTime(new Date());
-        fileInfo.setLastUpdateTime(new Date());
-        fileInfoMapper.updateFileDelFlagBatch(fileInfo, userId, null, delFileList, FileDelFlagEnum.RECYCLE.getFlag());
+
         //还原到原来的目录下，并重命名
         for (FileInfo info : fileInfoList) {
             query = new FileInfoQuery();
@@ -637,6 +631,15 @@ public class FileInfoServiceImpl implements FileInfoService {
                 fileInfoMapper.updateByFileIdAndUserId(updateInfo, info.getFileId(), userId);
             }
         }
+        //将选中的所有文件还原
+        List<String> delFileList = Arrays.asList(fileIdArray);
+        FileInfo fileInfo = new FileInfo();
+
+
+        fileInfo.setDelFlag(FileDelFlagEnum.USING.getFlag());
+        fileInfo.setRecoveryTime(new Date());
+        fileInfo.setLastUpdateTime(new Date());
+        fileInfoMapper.updateFileDelFlagBatch(fileInfo, userId, null, delFileList, FileDelFlagEnum.RECYCLE.getFlag());
     }
 
     @Override

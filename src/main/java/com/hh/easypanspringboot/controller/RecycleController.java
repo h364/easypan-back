@@ -37,11 +37,11 @@ public class RecycleController extends ABaseController {
         return getSuccessResponseVO(convert2PaginationVO(page, FileInfoVO.class));
     }
 
-    @PostMapping("/recoveryFile")
+    @PostMapping("/recoverFile")
     @GlobalInterceptor(checkParams = true)
-    public ResponseVO recoveryFile(HttpSession session, @VerifyParam(required = true) String fileIds) {
+    public ResponseVO recoverFile(HttpSession session, @VerifyParam(required = true) String fileIds) {
         SessionWebDto webDto = getUserInfoFromSession(session);
-        fileInfoService.recoveryFileBatch(webDto.getUserId(), fileIds);
+        fileInfoService.recoverFileBatch(webDto.getUserId(), fileIds);
         return getSuccessResponseVO(null);
     }
 

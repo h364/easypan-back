@@ -654,12 +654,12 @@
 
 	<!-- 根据userId和fileIds彻底删除 -->
     <delete id="delFileBatch">
-		delete from file_info where userId=#{userId}
+		delete from file_info where user_id=#{userId}
 		<if test="filePidList != null">
-			and file_pid in (<foreach collection="filePidList" separator="," item="item">#{item}</foreach>>)
+			and file_pid in (<foreach collection="filePidList" separator="," item="item">#{item}</foreach>)
 		</if>
 		<if test="fileIdList != null">
-			and file_id in (<foreach collection="fileIdList" separator="," item="item">#{item}</foreach>>)
+			and file_id in (<foreach collection="fileIdList" separator="," item="item">#{item}</foreach>)
 		</if>
 		<if test="oldDelFlag != null">
 			and del_flag = #{oldDelFlag}
@@ -769,12 +769,12 @@
 				recovery_time = #{bean.recoveryTime},
 			</if>
 		</set>
-		where userId=#{userId}
+		where user_id=#{userId}
 		<if test="filePidList != null">
-			and file_pid in (<foreach collection="filePidList" separator="," item="item">#{item}</foreach>>)
+			and file_pid in (<foreach collection="filePidList" separator="," item="item">#{item}</foreach>)
 		</if>
 		<if test="fileIdList != null">
-			and file_id in (<foreach collection="fileIdList" separator="," item="item">#{item}</foreach>>)
+			and file_id in (<foreach collection="fileIdList" separator="," item="item">#{item}</foreach>)
 		</if>
 		<if test="oldDelFlag != null">
 			and del_flag = #{oldDelFlag}
