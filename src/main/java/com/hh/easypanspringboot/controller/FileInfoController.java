@@ -81,7 +81,7 @@ public class FileInfoController extends CommonFileController {
 
     @GetMapping("/getFile/{fileId}")
     @GlobalInterceptor(checkParams = true)
-    public void gteFile(HttpSession session, HttpServletResponse response, @PathVariable("fileId") String fileId) {
+    public void getFile(HttpSession session, HttpServletResponse response, @PathVariable("fileId") String fileId) {
         SessionWebDto webDto = getUserInfoFromSession(session);
         super.getFile(response, fileId, webDto.getUserId());
     }
@@ -150,9 +150,8 @@ public class FileInfoController extends CommonFileController {
     }
 
     @GetMapping("/download/{code}")
-    @GlobalInterceptor(checkParams = true, checkLogin=false)
-    public void download(HttpServletRequest request, HttpServletResponse response,
-                         @VerifyParam(required = true) @PathVariable("code") String code) throws Exception {
+    @GlobalInterceptor(checkParams = true)
+    public void download(HttpServletRequest request, HttpServletResponse response, @PathVariable("code") String code) throws Exception {
         super.download(request, response, code);
     }
 
