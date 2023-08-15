@@ -2,8 +2,14 @@ package com.hh.easypanspringboot.aspect;
 
 import com.hh.easypanspringboot.annotation.GlobalInterceptor;
 import com.hh.easypanspringboot.annotation.VerifyParam;
+import com.hh.easypanspringboot.entity.config.AppConfig;
+import com.hh.easypanspringboot.entity.constants.Constants;
+import com.hh.easypanspringboot.entity.dto.SessionWebDto;
 import com.hh.easypanspringboot.entity.enums.ResponseCodeEnum;
+import com.hh.easypanspringboot.entity.po.UserInfo;
+import com.hh.easypanspringboot.entity.query.UserInfoQuery;
 import com.hh.easypanspringboot.exception.BusinessException;
+import com.hh.easypanspringboot.service.UserInfoService;
 import com.hh.easypanspringboot.utils.StringTools;
 import com.hh.easypanspringboot.utils.VerifyUtils;
 import org.apache.commons.lang3.ArrayUtils;
@@ -13,14 +19,26 @@ import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.stereotype.Component;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
+import java.util.List;
 
 @Aspect
 @Component
 public class GlobalOperationAspect {
+    @Resource
+    private AppConfig appConfig;
+
+    @Resource
+    private UserInfoService userInfoService;
+
     public static final String[] TYPE_BASE = {"java.lang.String", "java.lang.Integer", "java.lang.Long"};
 
     @Pointcut("@annotation(com.hh.easypanspringboot.annotation.GlobalInterceptor)")
@@ -40,12 +58,38 @@ public class GlobalOperationAspect {
             if(null == interceptor) {
                 return;
             }
-
+            if (interceptor.checkLogin() || interceptor.checkAdmin()) {
+                checkLogin(interceptor.checkAdmin());
+            }
             if(interceptor.checkParams()) {
                 validateParams(method, arguments);
             }
         }catch (Exception e){
             throw new BusinessException("全局拦截器异常");
+        }
+    }
+    //校验登录
+    private void checkLogin(Boolean checkAdmin) {
+        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        HttpSession session = request.getSession();
+        SessionWebDto sessionUser = (SessionWebDto) session.getAttribute(Constants.SESSION_KEY);
+        if (sessionUser == null && appConfig.getDev() != null && appConfig.getDev()) {
+            List<UserInfo> userInfoList = userInfoService.findListByParam(new UserInfoQuery());
+            if (!userInfoList.isEmpty()) {
+                UserInfo userInfo = userInfoList.get(0);
+                sessionUser = new SessionWebDto();
+                sessionUser.setUserId(userInfo.getUserId());
+                sessionUser.setNickname(userInfo.getNickName());
+                sessionUser.setAdmin(true);
+                session.setAttribute(Constants.SESSION_KEY, sessionUser);
+            }
+        }
+        if (null == sessionUser) {
+            throw new BusinessException(ResponseCodeEnum.CODE_901);
+        }
+
+        if (checkAdmin && !sessionUser.isAdmin()) {
+            throw new BusinessException(ResponseCodeEnum.CODE_404);
         }
     }
 

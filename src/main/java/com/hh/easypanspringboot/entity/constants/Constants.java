@@ -7,6 +7,8 @@ public class Constants {
 
     public static final String SESSION_KEY = "session_key";
 
+    public static final String SESSION_SHARE_KEY = "session_share_key_";
+
     public static final Integer LENGTH_5 = 5;
 
     public static final Integer LENGTH_10 = 10;

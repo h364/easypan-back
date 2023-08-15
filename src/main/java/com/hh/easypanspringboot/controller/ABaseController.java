@@ -1,6 +1,7 @@
 package com.hh.easypanspringboot.controller;
 
 import com.hh.easypanspringboot.entity.constants.Constants;
+import com.hh.easypanspringboot.entity.dto.SessionShareDto;
 import com.hh.easypanspringboot.entity.dto.SessionWebDto;
 import com.hh.easypanspringboot.entity.enums.ResponseCodeEnum;
 import com.hh.easypanspringboot.entity.vo.PaginationResultVO;
@@ -107,6 +108,11 @@ public class ABaseController {
 
     protected SessionWebDto getUserInfoFromSession(HttpSession session) {
         return (SessionWebDto) session.getAttribute(Constants.SESSION_KEY);
+    }
+
+    protected SessionShareDto getSessionShareFromSession(HttpSession session, String shareId) {
+        SessionShareDto sessionShareDto = (SessionShareDto) session.getAttribute(Constants.SESSION_SHARE_KEY + shareId);
+        return sessionShareDto;
     }
 
 }

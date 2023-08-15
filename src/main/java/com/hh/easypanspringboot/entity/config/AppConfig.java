@@ -15,6 +15,11 @@ public class AppConfig {
     @Value("${project.folders}")
     private String projectFolder;
 
+    @Value("${dev:false}")
+    private Boolean dev;
+
+    public Boolean getDev() { return dev; }
+
     public String getProjectFolder() {
         return projectFolder;
     }

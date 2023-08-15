@@ -671,4 +671,74 @@ public class FileInfoServiceImpl implements FileInfoService {
         userSpaceUse.setUseSpace(useSpace);
         redisComponent.saveUserSpaceUse(userId, userSpaceUse);
     }
+
+    @Override
+    public void checkRootFilePid(String filePid, String userId, String fileId) {
+        if (StringTools.isEmpty(fileId)) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+        if (filePid.equals(fileId)) {
+            return;
+        }
+        checkFilePid(filePid, userId, fileId);
+    }
+
+    private void checkFilePid(String filePid, String userId, String fileId) {
+        FileInfo fileInfo = fileInfoMapper.selectByFileIdAndUserId(fileId, userId);
+        if (fileInfo == null) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+        if (Constants.ZERO_STR.equals(filePid)) {
+            throw new BusinessException(ResponseCodeEnum.CODE_600);
+        }
+        if (fileInfo.getFilePid().equals(filePid)) {
+            return;
+        }
+        checkFilePid(filePid, userId, fileInfo.getFilePid());
+    }
+
+    @Override
+    public void saveShare(String shareRootFilePid, String shareFileIds, String myFolderId, String shareUserId, String currentUSerId) {
+        String[] shareIdArray = shareFileIds.split(",");
+        FileInfoQuery query = new FileInfoQuery();
+        query.setUserId(currentUSerId);
+        query.setFilePid(myFolderId);
+        List<FileInfo> currentFileList = fileInfoMapper.selectList(query);
+        Map<String, FileInfo> currentFileMap = currentFileList.stream().collect(Collectors.toMap(FileInfo::getFileName, Function.identity(), (data1, data2) -> data2));
+        query = new FileInfoQuery();
+        query.setUserId(shareUserId);
+        query.setFileIdArray(shareIdArray);
+        List<FileInfo> shareFileList = fileInfoMapper.selectList(query);
+
+        List<FileInfo> copyFileList = new ArrayList<>();
+        Date curDate = new Date();
+        for (FileInfo item : shareFileList) {
+            FileInfo haveFile = currentFileMap.get(item.getFileName());
+            if (haveFile != null) {
+                item.setFileName(StringTools.rename(item.getFileName()));
+            }
+            findAllSubFile(copyFileList, item, shareUserId, currentUSerId, curDate, myFolderId);
+        }
+        fileInfoMapper.insertBatch(copyFileList);
+    }
+
+    private void findAllSubFile(List<FileInfo> copyFileList, FileInfo fileInfo, String sourceUserId, String currentUserId, Date curDate, String newFilePid) {
+        String sourceFileId = fileInfo.getFileId();
+        fileInfo.setCreateTime(curDate);
+        fileInfo.setLastUpdateTime(curDate);
+        fileInfo.setFilePid(newFilePid);
+        fileInfo.setUserId(currentUserId);
+        String newFileId = StringTools.getRandomString(Constants.LENGTH_10);
+        fileInfo.setFileId(newFileId);
+        copyFileList.add(fileInfo);
+        if (FileFolderTypeEnum.FOLDER.getType().equals(fileInfo.getFolderType())) {
+            FileInfoQuery query = new FileInfoQuery();
+            query.setFilePid(sourceFileId);
+            query.setUserId(sourceUserId);
+            List<FileInfo> sourceFileList = this.fileInfoMapper.selectList(query);
+            for (FileInfo item : sourceFileList) {
+                findAllSubFile(copyFileList, item, sourceUserId, currentUserId, curDate, newFileId);
+            }
+        }
+    }
 }

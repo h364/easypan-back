@@ -6,6 +6,7 @@ import java.util.List;
 import javax.annotation.Resource;
 
 import com.hh.easypanspringboot.entity.constants.Constants;
+import com.hh.easypanspringboot.entity.dto.SessionShareDto;
 import com.hh.easypanspringboot.entity.enums.PageSize;
 import com.hh.easypanspringboot.entity.enums.ResponseCodeEnum;
 import com.hh.easypanspringboot.entity.enums.ShareValidTypeEnums;
@@ -159,5 +160,26 @@ public class FileShareServiceImpl implements FileShareService {
         if (count != shareIdArray.length) {
             throw new BusinessException(ResponseCodeEnum.CODE_600);
         }
+    }
+
+    @Override
+    public SessionShareDto checkShareCode(String shareId, String code) {
+        FileShare share = fileShareMapper.selectByShareId(shareId);
+        if (share == null) {
+            throw new BusinessException(ResponseCodeEnum.CODE_902.getMsg());
+        }
+        if (share.getExpireTime() != null && new Date().after(share.getExpireTime())) {
+            throw new BusinessException(ResponseCodeEnum.CODE_903.getMsg());
+        }
+        if(!share.getCode().equals(code)) {
+            throw new BusinessException("提取码错误");
+        }
+        fileShareMapper.updateShareShowCount(shareId);
+        SessionShareDto shareDto = new SessionShareDto();
+        shareDto.setShareId(shareId);
+        shareDto.setShareUserId(share.getUserId());
+        shareDto.setFileId(share.getFileId());
+        shareDto.setExpireTime(share.getExpireTime());
+        return shareDto;
     }
 }

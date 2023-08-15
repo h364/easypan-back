@@ -2,6 +2,7 @@ package com.hh.easypanspringboot.service;
 
 import java.util.List;
 
+import com.hh.easypanspringboot.entity.dto.SessionShareDto;
 import com.hh.easypanspringboot.entity.po.FileShare;
 import com.hh.easypanspringboot.entity.query.FileShareQuery;
 import com.hh.easypanspringboot.entity.vo.PaginationResultVO;
@@ -73,4 +74,5 @@ public interface FileShareService {
 
     void deleteFileShareBatch(String[] shareIdArray, String userId);
 
+    SessionShareDto checkShareCode(String shareId, String code);
 }
