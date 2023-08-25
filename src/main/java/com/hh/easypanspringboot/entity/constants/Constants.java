@@ -1,6 +1,8 @@
 package com.hh.easypanspringboot.entity.constants;
 
 public class Constants {
+    public static final String JWT_SIGN = "easypan";
+
     public static final String CHECK_CODE_KEY = "check_code_key";
 
     public static final String CHECK_CODE_KEY_EMAIL = "check_code_key_email";
@@ -29,6 +31,8 @@ public class Constants {
 
     public static final Integer TWO = 2;
 
+    public static final Long TEN_DAYS = 1000 * 60 * 60 * 24 * 10L;
+
     public static final String REDIS_KEY_SYS_SETTING = "easypan:syssetting:";
 
     public static final String REDIS_KEY_USER_SPACE_USE = "easypan:user:spaceuse:";
@@ -36,6 +40,8 @@ public class Constants {
     public static final String REDIS_KEY_USER_FILE_TEMP_SIZE = "easypan:user:file:temp:";
 
     public static final String REDIS_KEY_DOWNLOAD = "easypan:download:";
+
+    public static final String REDIS_KEY_USER_SESSIONINFO = "easypan:user:sessioninfo:";
 
     public static final Integer REDIS_KEY_EXPIRES_ONE_MIN= 60;
 
@@ -62,4 +68,8 @@ public class Constants {
     public static final String TS_NAME = "index.ts";
 
     public static final String M3U8_NAME = "index.m3u8";
+
+    public static final String RABBITMQ_ROUTING_KEY_N = "routing_key_n";
+
+    public static final String RABBITMQ_ROUTING_KEY_D = "routing_key_D";
 }

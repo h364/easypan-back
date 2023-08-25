@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 
+import com.hh.easypanspringboot.component.RabbitmqComponent;
 import com.hh.easypanspringboot.component.RedisComponent;
 import com.hh.easypanspringboot.entity.config.AppConfig;
 import com.hh.easypanspringboot.entity.constants.Constants;
@@ -16,14 +17,17 @@ import com.hh.easypanspringboot.entity.dto.SessionWebDto;
 import com.hh.easypanspringboot.entity.dto.UploadResultDto;
 import com.hh.easypanspringboot.entity.dto.UserSpaceDto;
 import com.hh.easypanspringboot.entity.enums.*;
+import com.hh.easypanspringboot.entity.po.FileShare;
 import com.hh.easypanspringboot.entity.po.UserInfo;
+import com.hh.easypanspringboot.entity.query.FileShareQuery;
 import com.hh.easypanspringboot.entity.query.UserInfoQuery;
 import com.hh.easypanspringboot.exception.BusinessException;
+import com.hh.easypanspringboot.mappers.FileShareMapper;
 import com.hh.easypanspringboot.mappers.UserInfoMapper;
+import com.hh.easypanspringboot.service.FileShareService;
 import com.hh.easypanspringboot.utils.DateUtil;
 import com.hh.easypanspringboot.utils.ProcessUtils;
 import com.hh.easypanspringboot.utils.ScaleFilter;
-import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
 import org.springframework.context.annotation.Lazy;
@@ -61,11 +65,17 @@ public class FileInfoServiceImpl implements FileInfoService {
     private RedisComponent redisComponent;
 
     @Resource
+    private RabbitmqComponent rabbitmqComponent;
+
+    @Resource
     private AppConfig appConfig;
 
     @Resource
     @Lazy
     private FileInfoServiceImpl fileInfoService;
+
+    @Resource
+    private FileShareService fileShareService;
 
     /**
      * 根据条件查询列表
@@ -547,10 +557,10 @@ public class FileInfoServiceImpl implements FileInfoService {
     }
 
     @Override
-    public void remove2RecycleBatch(String userId, String fileIds) {
+    public void remove2RecycleBatch(SessionWebDto webDto, String fileIds) {
         String[] fileIdArray = fileIds.split(",");
         FileInfoQuery query = new FileInfoQuery();
-        query.setUserId(userId);
+        query.setUserId(webDto.getUserId());
         query.setFileIdArray(fileIdArray);
         query.setDelFlag(FileDelFlagEnum.USING.getFlag());
 
@@ -560,21 +570,25 @@ public class FileInfoServiceImpl implements FileInfoService {
         }
         ArrayList<String> delFilePidList = new ArrayList<>();
         for (FileInfo fileInfo : fileInfoList) {
-            findAllSubFolderFileList(delFilePidList, userId, fileInfo.getFileId(), FileDelFlagEnum.USING.getFlag());
+            findAllSubFolderFileList(delFilePidList, webDto.getUserId(), fileInfo.getFileId(), FileDelFlagEnum.USING.getFlag());
         }
         //文件夹更新删除状态
         if (!delFilePidList.isEmpty()) {
             FileInfo updateInfo = new FileInfo();
             updateInfo.setRecoveryTime(new Date());
             updateInfo.setDelFlag(FileDelFlagEnum.DEL.getFlag());
-            fileInfoMapper.updateFileDelFlagBatch(updateInfo, userId, delFilePidList, null, FileDelFlagEnum.USING.getFlag());
+            fileInfoMapper.updateFileDelFlagBatch(updateInfo, webDto.getUserId(), delFilePidList, null, FileDelFlagEnum.USING.getFlag());
         }
         //将选中的文件更新为回收站
         List<String> delFileList = Arrays.asList(fileIdArray);
         FileInfo updateInfo = new FileInfo();
         updateInfo.setRecoveryTime(new Date());
         updateInfo.setDelFlag(FileDelFlagEnum.RECYCLE.getFlag());
-        fileInfoMapper.updateFileDelFlagBatch(updateInfo, userId, null, delFileList, FileDelFlagEnum.USING.getFlag());
+        fileInfoMapper.updateFileDelFlagBatch(updateInfo, webDto.getUserId(), null, delFileList, FileDelFlagEnum.USING.getFlag());
+        //删除的文件中如果有正在分享的，则删除
+        fileShareService.deleteFileShareBatch(String.join(",", delFileList).split(","), webDto.getUserId());
+        //将要删除的文件id放到消息队列当中
+        rabbitmqComponent.sendDelFileList2Recycle("normalExchange", Constants.RABBITMQ_ROUTING_KEY_N, delFileList, webDto.getToken());
     }
 
     private void findAllSubFolderFileList(ArrayList<String> delFileIdList, String userId, String fileId, Integer flag) {

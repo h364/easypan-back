@@ -19,6 +19,11 @@ spring:
     database: 0
     host: 192.168.188.128
     port: 6379
+  rabbitmq:
+    host: 192.168.188.128
+    port: 5672
+    username: admin
+    password: 123
   servlet:
     multipart:
       max-request-size: 15MB

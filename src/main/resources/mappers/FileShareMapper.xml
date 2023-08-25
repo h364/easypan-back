@@ -419,6 +419,7 @@
         from file_share
         where user_id = #{userId}
         and share_id in (<foreach collection="shareIdArray" separator="," item="item">#{item}</foreach>)
+        or file_id in (<foreach collection="shareIdArray" separator="," item="item">#{item}</foreach>)
     </delete>
 
     <update id="updateShareShowCount">

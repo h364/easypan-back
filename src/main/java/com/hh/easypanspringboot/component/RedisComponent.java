@@ -2,6 +2,7 @@ package com.hh.easypanspringboot.component;
 
 import com.hh.easypanspringboot.entity.constants.Constants;
 import com.hh.easypanspringboot.entity.dto.DownloadFileDto;
+import com.hh.easypanspringboot.entity.dto.SessionWebDto;
 import com.hh.easypanspringboot.entity.dto.SysSettingDto;
 import com.hh.easypanspringboot.entity.dto.UserSpaceDto;
 import com.hh.easypanspringboot.entity.po.FileInfo;
@@ -11,6 +12,7 @@ import com.hh.easypanspringboot.utils.RedisUtils;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.Resource;
+import javax.servlet.http.HttpSession;
 
 @Component
 public class RedisComponent {
@@ -75,5 +77,13 @@ public class RedisComponent {
 
     public DownloadFileDto getDownloadCode(String code) {
         return (DownloadFileDto) redisUtils.get(Constants.REDIS_KEY_DOWNLOAD + code);
+    }
+
+    public void saveUserSessionInfo(String token) {
+        redisUtils.setex(Constants.REDIS_KEY_USER_SESSIONINFO + token, token, Constants.REDIS_KEY_EXPIRES_ONE_HOUR);
+    }
+
+    public String getUserSessionInfo(String token) {
+        return (String) redisUtils.get(Constants.REDIS_KEY_USER_SESSIONINFO + token);
     }
 }

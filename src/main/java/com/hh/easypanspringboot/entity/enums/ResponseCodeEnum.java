@@ -11,7 +11,8 @@ public enum ResponseCodeEnum {
     CODE_902(902, "分享链接不存在"),
     CODE_903(903, "分享链接已失效"),
     CODE_904(904, "网盘空间不足，请扩容"),
-    CODE_905(905, "分享验证失效，请重新验证");
+    CODE_905(905, "分享验证失效，请重新验证"),
+    CODE_906(906, "验证码错误");
 
     private Integer code;
 

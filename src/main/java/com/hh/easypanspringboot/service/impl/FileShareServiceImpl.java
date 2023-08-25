@@ -156,10 +156,7 @@ public class FileShareServiceImpl implements FileShareService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void deleteFileShareBatch(String[] shareIdArray, String userId) {
-        Integer count = fileShareMapper.deleteFileShareBatch(shareIdArray, userId);
-        if (count != shareIdArray.length) {
-            throw new BusinessException(ResponseCodeEnum.CODE_600);
-        }
+        fileShareMapper.deleteFileShareBatch(shareIdArray, userId);
     }
 
     @Override

@@ -83,7 +83,7 @@ public interface FileInfoService {
 
     UserSpaceDto getUseSpace(String userId);
 
-    void remove2RecycleBatch(String userId, String fileIds);
+    void remove2RecycleBatch(SessionWebDto webDto, String fileIds);
 
     void recoverFileBatch(String userId, String fileIds);
 

@@ -5,6 +5,7 @@ public class SessionWebDto {
     private String userId;
     private boolean isAdmin;
     private String avatar;
+    private String token;
 
     public String getNickname() {
         return nickname;
@@ -36,5 +37,13 @@ public class SessionWebDto {
 
     public void setAvatar(String avatar) {
         this.avatar = avatar;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
     }
 }

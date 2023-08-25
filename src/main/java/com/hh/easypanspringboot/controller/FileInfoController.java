@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.hh.easypanspringboot.annotation.GlobalInterceptor;
 import com.hh.easypanspringboot.annotation.VerifyParam;
+import com.hh.easypanspringboot.component.RedisComponent;
 import com.hh.easypanspringboot.entity.dto.SessionWebDto;
 import com.hh.easypanspringboot.entity.dto.UploadResultDto;
 import com.hh.easypanspringboot.entity.dto.UserSpaceDto;
@@ -15,6 +16,7 @@ import com.hh.easypanspringboot.entity.po.FileInfo;
 import com.hh.easypanspringboot.entity.vo.FileInfoVO;
 import com.hh.easypanspringboot.entity.vo.PaginationResultVO;
 import com.hh.easypanspringboot.entity.vo.ResponseVO;
+import com.hh.easypanspringboot.exception.BusinessException;
 import com.hh.easypanspringboot.service.FileInfoService;
 import com.hh.easypanspringboot.utils.CopyTools;
 import com.hh.easypanspringboot.utils.StringTools;
@@ -35,6 +37,9 @@ public class FileInfoController extends CommonFileController {
 
     @Resource
     private FileInfoService fileInfoService;
+
+    @Resource
+    private RedisComponent redisComponent;
 
     /**
      * 根据条件分页查询
@@ -157,9 +162,15 @@ public class FileInfoController extends CommonFileController {
 
     @PostMapping("/delFile")
     @GlobalInterceptor(checkParams = true)
-    public ResponseVO delFile(HttpSession session, @VerifyParam(required = true) String fileIds) {
+    public ResponseVO delFile(HttpSession session, HttpServletRequest request, @VerifyParam(required = true) String fileIds) {
         SessionWebDto webDto = getUserInfoFromSession(session);
-        fileInfoService.remove2RecycleBatch(webDto.getUserId(), fileIds);
+        String token = request.getHeader("token");
+        if(token == null || "".equals(token)) {
+            session.invalidate();
+            throw new BusinessException("登录过期，请重新登录");
+        }
+        redisComponent.saveUserSessionInfo(token);
+        fileInfoService.remove2RecycleBatch(webDto, fileIds);
         return getSuccessResponseVO(null);
     }
 

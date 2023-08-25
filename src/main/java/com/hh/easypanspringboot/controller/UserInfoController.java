@@ -11,12 +11,14 @@ import com.hh.easypanspringboot.entity.constants.Constants;
 import com.hh.easypanspringboot.entity.dto.CreateImageCode;
 import com.hh.easypanspringboot.entity.dto.SessionWebDto;
 import com.hh.easypanspringboot.entity.dto.UserSpaceDto;
+import com.hh.easypanspringboot.entity.enums.ResponseCodeEnum;
 import com.hh.easypanspringboot.entity.enums.VerifyRegexEnum;
 import com.hh.easypanspringboot.entity.po.UserInfo;
 import com.hh.easypanspringboot.entity.vo.ResponseVO;
 import com.hh.easypanspringboot.exception.BusinessException;
 import com.hh.easypanspringboot.service.EmailCodeService;
 import com.hh.easypanspringboot.service.UserInfoService;
+import com.hh.easypanspringboot.utils.JWTUtils;
 import com.hh.easypanspringboot.utils.StringTools;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -110,10 +112,12 @@ public class UserInfoController extends ABaseController {
                             @VerifyParam(required = true) String checkCode) {
         try {
             if (!checkCode.equalsIgnoreCase((String) session.getAttribute(Constants.CHECK_CODE_KEY))) {
-                throw new BusinessException("验证码错误");
+                throw new BusinessException(ResponseCodeEnum.CODE_906);
             }
             SessionWebDto sessionWebDto = userInfoService.login(email, password);
             session.setAttribute(Constants.SESSION_KEY, sessionWebDto);
+            String token = JWTUtils.createToken(sessionWebDto.getUserId(), Constants.JWT_SIGN);
+            sessionWebDto.setToken(token);
             return getSuccessResponseVO(sessionWebDto);
         } finally {
             session.removeAttribute(Constants.CHECK_CODE_KEY);
